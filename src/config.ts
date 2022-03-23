@@ -118,7 +118,7 @@ export class Config {
       ? new SafeServiceClient(this.safe.api)
       : undefined;
     this.provider = provider;
-    this.signer = null;
+    this.signer = metamaskSigner ?? null;
     this.gasLimits = gasLimits;
     this.abi = config.abi;
     this.ceramic = {
