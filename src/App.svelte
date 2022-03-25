@@ -19,7 +19,7 @@
 
   const loadConfig = getConfig().then(async cfg => {
     if ($state.connection === Connection.Connected) {
-      state.refreshBalance(cfg);
+      state.refreshBalance();
     } else if ($state.connection === Connection.Disconnected) {
       // Update the session state if we're already connected to WalletConnect
       // from a previous session.
