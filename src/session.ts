@@ -28,7 +28,6 @@ type Signer = ethers.Signer & TypedDataSigner | WalletConnectSigner | null;
 // TODO: Eventually there will be more reactive config needs, e.g. seeds
 export type SessionConfig = { signer: Signer; token: ethers.Contract };
 
-
 export type State =
     { connection: Connection.Disconnected }
   | { connection: Connection.Connecting }
