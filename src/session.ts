@@ -62,7 +62,7 @@ export const loadState = (initial: State): Store => {
       // Re-connect using previous session.
       if (config.metamask.connected) {
         const metamask = config.metamask.session;
-        const sessionConfig = { signer: config.signer, token: config.token };
+        const sessionConfig = { signer: config.metamask.signer, token: config.token };
         const tokenBalance: BigNumber = await config.token.balanceOf(metamask.address);
         const session = { config: sessionConfig, address: metamask.address, tokenBalance, tx: null };
 
@@ -111,7 +111,7 @@ export const loadState = (initial: State): Store => {
 
         const address = await signer.getAddress();
         const tokenBalance: BigNumber = await config.token.balanceOf(address);
-        const sessionConfig = { signer: config.signer, token: config.token };
+        const sessionConfig = { signer: config.walletConnect.signer, token: config.token };
         const session = { config: sessionConfig, address, tokenBalance, tx: null };
         const network = await ethers.providers.getNetwork(
           signer.walletConnect.chainId
@@ -323,6 +323,6 @@ export function disconnectWallet(config: Config): void {
 
 function saveSession(session: Session): void {
   window.localStorage.setItem("metamask", JSON.stringify({
-    ...session, tokenBalance: null, config: null
+    ...session, tokenBalance: null
   }));
 }
