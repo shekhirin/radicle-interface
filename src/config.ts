@@ -8,7 +8,6 @@ import WalletConnect from "@walletconnect/client";
 import config from "@app/config.json";
 import { WalletConnectSigner } from "./WalletConnectSigner";
 
-
 declare global {
   interface Window {
     // eslint-disable-next-line @typescript-eslint/naming-convention

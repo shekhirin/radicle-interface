@@ -23,10 +23,21 @@ export type TxState =
 
 type Signer = ethers.Signer & TypedDataSigner | WalletConnectSigner | null;
 
+// Defines the type of signer we are using in the current session.
+// Allows us to guard certain functionality for a specific signer.
+enum SignerType {
+  WalletConnect,
+  MetaMask
+}
+
 // Definitions made in `Config` that need to be part of the session,
 // to provide reactivity based on events i.e. accountsChanged
-// TODO: Eventually there will be more reactive config needs, e.g. seeds
-export type SessionConfig = { signer: Signer; token: ethers.Contract };
+// The token property isn't reactive, but reduces the passing down of the config object.
+export type SessionConfig = {
+  signer: Signer;
+  token: ethers.Contract;
+  type: SignerType;
+ };
 
 export type State =
     { connection: Connection.Disconnected }
@@ -62,7 +73,7 @@ export const loadState = (initial: State): Store => {
       // Re-connect using previous session.
       if (config.metamask.connected) {
         const metamask = config.metamask.session;
-        const sessionConfig = { signer: config.metamask.signer, token: config.token };
+        const sessionConfig = { signer: config.signer, type: SignerType.MetaMask, token: config.token };
         const tokenBalance: BigNumber = await config.token.balanceOf(metamask.address);
         const session = { config: sessionConfig, address: metamask.address, tokenBalance, tx: null };
 
@@ -88,14 +99,14 @@ export const loadState = (initial: State): Store => {
         config.walletConnect.state.set({ state: "close" });
 
         const tokenBalance: BigNumber = await config.token.balanceOf(address);
-        const sessionConfig = { signer: config.signer, token: config.token };
+        const sessionConfig = { signer: config.signer, type: SignerType.MetaMask, token: config.token };
         const session = { config: sessionConfig, address, tokenBalance, tx: null };
 
         store.set({
           connection: Connection.Connected,
           session,
         });
-        saveSession(session);
+        saveMetamaskSession(session);
       } catch (e) {
         console.error(e);
       }
@@ -111,7 +122,7 @@ export const loadState = (initial: State): Store => {
 
         const address = await signer.getAddress();
         const tokenBalance: BigNumber = await config.token.balanceOf(address);
-        const sessionConfig = { signer: config.walletConnect.signer, token: config.token };
+        const sessionConfig = { signer: config.signer, type: SignerType.WalletConnect, token: config.token };
         const session = { config: sessionConfig, address, tokenBalance, tx: null };
         const network = await ethers.providers.getNetwork(
           signer.walletConnect.chainId
@@ -128,6 +139,7 @@ export const loadState = (initial: State): Store => {
           }
 
           try {
+            config.getWalletConnectSigner();
             // We only change accounts if the address has been changed, to avoid unnecessary refreshing.
             if (address !== accounts[0]) changeAccounts(accounts[0]);
             // Check the current chainId, and request Metamask to change, or reload the window to get the correct chain.
@@ -254,9 +266,11 @@ export const loadState = (initial: State): Store => {
             if (address === undefined) {
               // This ends with a window reload.
               disconnectMetamask();
+            } else {
+              s.session.address = address;
+              // We only save the session to localStorage if we use a MetaMask signer.
+              if (s.session.config.type === SignerType.MetaMask) saveMetamaskSession(s.session);
             }
-            s.session.address = address;
-            saveSession(s.session);
             return s;
           default:
             return s;
@@ -321,8 +335,8 @@ export function disconnectWallet(config: Config): void {
   disconnectMetamask();
 }
 
-function saveSession(session: Session): void {
+function saveMetamaskSession(session: Session): void {
   window.localStorage.setItem("metamask", JSON.stringify({
-    ...session, tokenBalance: null
+    ...session, tokenBalance: null, config: null
   }));
 }
