@@ -18,6 +18,7 @@
 <style>
   .hash {
     font-family: var(--font-family-monospace);
+    padding: 0 1.5rem;
   }
   .commit-teaser {
     background-color: var(--color-foreground-background);
@@ -41,9 +42,7 @@
   }
 
   .column-left {
-    padding: 0 1.5rem;
-  }
-  .column-center {
+    padding-left: 1rem;
     flex: min-content;
   }
   .commit-teaser .column-right {
@@ -58,7 +57,13 @@
     padding-right: 1rem;
   }
   .badge {
-    margin: 0 1rem 0 0;
+    margin: 0;
+  }
+  .browse {
+    display: flex;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
   }
 
   @media (max-width: 960px) {
@@ -79,9 +84,6 @@
 
 <div class="commit-teaser">
   <div class="column-left">
-    <span class="secondary hash">{formatCommit(commit.header.sha1)}</span>
-  </div>
-  <div class="column-center">
     <div class="header">
       <div class="summary">
         {commit.header.summary}
@@ -93,6 +95,9 @@
     {#if commit.context.committer}
       <span class="badge tertiary">Verified</span>
     {/if}
-    <Icon name="browse" width={17} inline fill on:click={() => browseCommit(commit.header.sha1)} />
+    <span class="secondary hash">{formatCommit(commit.header.sha1)}</span>
+    <div class="browse" on:click|stopPropagation={() => browseCommit(commit.header.sha1)}>
+      <Icon name="browse" width={17} inline fill />
+    </div>
   </div>
 </div>
