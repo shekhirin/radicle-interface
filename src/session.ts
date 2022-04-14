@@ -7,6 +7,7 @@ import { Unreachable, assert, assertEq } from "@app/error";
 import type { TypedDataSigner } from '@ethersproject/abstract-signer';
 import type { WalletConnectSigner } from "./WalletConnectSigner";
 import * as ethers from "ethers";
+import type { SeedSession } from "./siwe";
 
 export enum Connection {
   Disconnected,
@@ -31,6 +32,7 @@ export type State =
 export interface Session {
   address: string;
   signer: Signer | null;
+  seeds: { [key: string]: SeedSession };
   tokenBalance: BigNumber | null; // `null` means it isn't loaded yet.
   tx: TxState;
 }
@@ -39,6 +41,7 @@ export interface Store extends Readable<State> {
   connectMetamask(config: Config): Promise<void>;
   connectWalletConnect(config: Config): Promise<void>;
   updateBalance(n: BigNumber): void;
+  connectSeed(seed: { id: string; session: SeedSession }): void;
   refreshBalance(config: Config): Promise<void>;
   setTxSigning(): void;
   setTxPending(tx: TransactionResponse): void;
@@ -153,6 +156,20 @@ export const loadState = (initial: State): Store => {
       }
     },
 
+    connectSeed: ({ id, session }: { id: string; session: SeedSession }) => {
+      store.update((s: State) => {
+        switch (s.connection) {
+          case Connection.Connected:
+            s.session.seeds[id] = session;
+            saveSession(s.session);
+
+            return s;
+          default:
+            return s;
+        }
+      });
+    },
+
     updateBalance: (n: BigNumber) => {
       store.update((s: State) => {
         assert(s.connection === Connection.Connected);
@@ -160,6 +177,7 @@ export const loadState = (initial: State): Store => {
           // If the token balance is loaded, we can update it, otherwise
           // we let it finish loading.
           s.session.tokenBalance = s.session.tokenBalance.add(n);
+          saveSession(s.session);
         }
         return s;
       });
@@ -285,6 +303,10 @@ export async function changeAccounts(address: string): Promise<void> {
   state.refreshBalance(config);
 }
 
+export async function connectSeed(seedSession: { id: string; session: SeedSession }): Promise<void> {
+  state.connectSeed(seedSession);
+}
+
 state.subscribe(s => {
   console.log("session.state", s);
 });
@@ -316,7 +338,8 @@ export function disconnectWallet(config: Config): void {
 }
 
 function saveSession(session: Session): void {
-  window.localStorage.setItem("metamask", JSON.stringify({
-    ...session, tokenBalance: null, config: null
-  }));
+  const { address, tokenBalance, tx, seeds } = session;
+
+  window.localStorage.setItem("metamask", JSON.stringify({ address, tokenBalance, tx }));
+  window.localStorage.setItem("siwe", JSON.stringify({ seeds }));
 }

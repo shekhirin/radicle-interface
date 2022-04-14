@@ -29,6 +29,13 @@
       } else if (cfg.metamask.connected) {
         await state.connectMetamask(cfg);
       }
+      const siwe = localStorage.getItem("siwe");
+      if (siwe) {
+        const seed = Object.entries(JSON.parse(siwe).seeds)
+        seed.forEach(([id, session]: any) => {
+          state.connectSeed({id, session})
+        });
+      }
     }
     return cfg;
   });
